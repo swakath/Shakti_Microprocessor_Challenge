@@ -7,7 +7,7 @@ import getpass
 from os import system, name
 from time import sleep
 import random
-
+import math
 
 def clear():
   
@@ -162,7 +162,7 @@ def unwrapData(packet):
 		info.append(bridge[0])
 		if info[0] == 'IN':	
 			info.append(int (bridge[1]))
-			info.append(int (bridge[2]))
+			info.append(bridge[2])
 			info.append(float(bridge[3]))
 			info.append(bridge[4])
 			flag = True
@@ -176,7 +176,7 @@ def writeCard(RFID,Pin,Amount,Name):
 	writer = SimpleMFRC522()
 
 	try:
-        	print("Now place your tag to write")
+        	print("Now place your tag to write.\n")
         	writer.write(text)
 	except:
 		flag = False
@@ -271,8 +271,10 @@ def addUser():
 			isCardWrite = False
 	# If the write is Successful the written data is read again to verify
 		if isCardWrite:	
+			#print("Card is written")
 			isCardWrite	= verifyWrite(custRFID,custPIN,custBalance,custName) # Verification of write
 		if isCardWrite:
+			#print("Card written is verified
 	# Updating Database if the write is successful and printing the credintials
 			isDatabaseWrite = False
 			isDatabaseWrite = confirmWrite(custRFID)
