@@ -8,7 +8,6 @@ from os import system, name
 from time import sleep
 import random
 
-url = "https://shakti-challenge.herokuapp.com"
 
 def clear():
   
@@ -22,14 +21,17 @@ def clear():
 
 
 ####### DB Query functions #########
+url = "https://shakti-challenge.herokuapp.com"
+# url = "http://localhost:5001"
+
 def registerEmp(empId,name,password,mobile,authority):
 	req_json = {
-		"empId" : empId,
-		"name" : name,
-		"password" : password,
-		"mobile" : mobile,
-		"authority" : authority
-		}
+		"empId" : empId, # string 30
+		"name" : name, # string 30
+		"password" : password, # string 30
+		"mobile" : mobile, # integer
+		"authority" : authority #0,1,2
+	}
 	response = requests.put(url+"/empAdd",json=req_json)
 	res = json.loads(response.text)
 	if res["valid"]:
@@ -42,14 +44,14 @@ def registerEmp(empId,name,password,mobile,authority):
 
 def validateEmp(empId,password):
 	req_json = {
-		"empId" : empId,
-		"password" : password
-		}
+	"empId" : empId, # string 30
+	"password" : password # string 30
+	}
 	response = requests.get(url+"/empValidate",json=req_json)
 	res = json.loads(response.text)
 	if res["valid"]:
-		#print("Server[successful] : ",res["msg"])
-		#print("Account details :- \nempId :",res["empId"],"\nname :",res["name"],"\nisManager :",res["isManager"])
+		print("Server[successful] : ",res["msg"])
+		print("Account details :- \nname :",res["name"],"\nisManager :",res["isManager"])
 		return True,res["isManager"]
 	else :
 		print("Server[error] : ",res["msg"])
@@ -57,10 +59,10 @@ def validateEmp(empId,password):
 
 def validateUser(rfid,pin):
 	req_json = {
-		"rfid" : rfid,
-		"pin" : pin
-		}
-	response = requests.post(url+"/validate",json=req_json)
+		"rfid" : rfid, # integer
+		"pin" : pin # string 10
+	}
+	response = requests.get(url+"/validate",json=req_json)
 	res = json.loads(response.text)
 	if res["valid"]:
 		print("Server[successful] : ",res["msg"])
@@ -68,29 +70,58 @@ def validateUser(rfid,pin):
 	else :
 		print("Server[error] : ",res["msg"])
 
-def registerUser(rfid,name,pin,address,balance):
+def registerUser(name,pin,address,mobile,balance):
+	req_json = {
+		"pin" : pin, # string 10
+		"address" : address, # string 50
+		"mobile" : mobile, # integer
+		"balance" : balance, # integer
+		"name" : name # integer 30
+	}
+	response = requests.post(url+"/register",json=req_json)
+	res = json.loads(response.text)
+	if res["valid"]:
+        #print("Server[successful] : ",res["msg"])
+        #print("Account details :- \nrfid :",res["rfid"])
+		return True,res["rfid"]
+	else :
+		print("Server[error] : ",res["msg"])
+		return False,False
+
+def confirmWrite(rfid):
     req_json = {
-        "rfid" : rfid,
-        "pin" : pin,
-        "address" : address,
-        "balance" : balance,
-        "name" : name
+        "rfid" : rfid # integer
     }
-    response = requests.post(url+"/register",json=req_json)
+    response = requests.put(url+"/confirmWrite",json=req_json)
     res = json.loads(response.text)
     if res["valid"]:
-        print("Server[successful] : ",res["msg"])
-        print("Account details :- \nrfid :",res["rfid"],"\nname :",res["name"],"\nbalance :",res["balance"])
+        #print("Server[successful] : ",res["msg"])
+        return True
     else :
         print("Server[error] : ",res["msg"])
+        return False
 
 def withdraw(rfid,pin,amount):
     req_json = {
-        "rfid" : rfid,
-        "pin" : pin,
-        "amount" : amount
+        "rfid" : rfid, # integer
+        "pin" : pin, # string 10
+        "amount" : amount # integer
     }
-    response = requests.post(url+"/deduct",json=req_json)//addAmount
+    response = requests.post(url+"/deduct",json=req_json)
+    res = json.loads(response.text)
+    if res["valid"]:
+        print("Server[successful] : ",res["msg"])
+        print("Account details :- \nrfid :",res["rfid"],"\ncurrent balance :",res["balance"])
+    else :
+        print("Server[error] : ",res["msg"])
+
+def deposite(rfid,pin,amount):
+    req_json = {
+        "rfid" : rfid, # integer
+        "pin" : pin, # string 10
+        "amount" : amount # integer
+    }
+    response = requests.put(url+"/addAmount",json=req_json)
     res = json.loads(response.text)
     if res["valid"]:
         print("Server[successful] : ",res["msg"])
@@ -104,10 +135,11 @@ def withdraw(rfid,pin,amount):
 
 def generatePIN():
 	pin = random.randint(999, 9999)
+	pin = str(pin)
 	return pin
 
 ####### RFID Sensor Functions ##############
-	
+
 def wrapData(RFID,Pin,Amount,Name):	
 	#IN - 4(2)
 	#RFID - 8(6)
@@ -228,20 +260,28 @@ def addUser():
 	
 	
 	# Adding the information to database and RFID Tag is verification is successful	
-	isWrite = False	
+	isCardWrite = False	
 	if isVerified:	
 	# Data of the user is written in the RFID Tag
+		isDatabaseWrite,custRFID = registerUser(custName,custPIN,custAdd,custMobile,custBalance)
 		#custRFID = getRFID(custPIN,custBalance,custName) # Getting RFID from database
-		isWrite = writeCard(custRFID,custPIN,custBalance,custName) #
+		if isDatabaseWrite:		
+			isCardWrite = writeCard(custRFID,custPIN,custBalance,custName)
+		else:
+			isCardWrite = False
 	# If the write is Successful the written data is read again to verify
-		if isWrite:	
-			isWrite	= verifyWrite(custRFID,custPIN,custBalance,custName) # Verification of write
-		if isWrite:
+		if isCardWrite:	
+			isCardWrite	= verifyWrite(custRFID,custPIN,custBalance,custName) # Verification of write
+		if isCardWrite:
 	# Updating Database if the write is successful and printing the credintials
-			print("Card Created Succefully\n");
-			print("Customer ID: ",custRFID,"\nCustomer PIN: ",custPIN,'\n')
+			isDatabaseWrite = False
+			isDatabaseWrite = confirmWrite(custRFID)
+			
 			# Update data base succeful column to true.
-	if not isWrite:
+	if isCardWrite and isDatabaseWrite:
+		print("Card Created Succefully\n");
+		print("Customer ID: ",custRFID,"\nCustomer PIN: ",custPIN,'\n')
+	else:		
 		print("Card write failure please try again");		
 	# Taking input for the 
 	isValidOption = False	
@@ -310,7 +350,7 @@ def loginWindow():
 		pwd = getpass.getpass(prompt='Pass ')
 		isValidCred = False	
 		isValidCred = True
-		isAdmin = True
+		isAdmin = False
 		#isValidCred,isAdmin = validateEmp(empID,pwd) 
 		print(isValidCred,isAdmin)      	
 		if isValidCred:
