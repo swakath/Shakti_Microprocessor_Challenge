@@ -1,0 +1,205 @@
+Following is the working of API requests handeled by the server:
+
+1) validate
+url : \validate
+method : GET
+format : json
+describtion : Use to validate rfid and pin 
+curent status : completed, woking
+input format :
+    {
+        "rfid" : <rfid>,
+        "pin" : <pin>
+    }
+output format : 4 types depending on data posted
+    - valid rfid and pin
+    {
+        "valid" : true,
+        "rfid" : <rfid>,
+        "name" : <name>,
+        "balance" : <balance>
+    }
+    - invalid pin valid rfid
+    {  
+        "valid": false,
+        "err": "Pin not matching!"
+    }
+    - invalid rfid
+    {
+        "valid": false,
+        "err": "Rfid not registered!"
+    }
+
+2) register
+url : \register
+method : POST
+format : json
+describtion : Use to add a new user 
+curent status : completed, working
+input format : 
+    {
+        "name" : <name>,
+        "pin" : <pin>,
+        "address" : <address>,
+        "balance" : <balance>,
+        "mobile" : <mobile>
+    }
+output format : 2 type depending on stituation
+    - succesfully registered
+    {
+        "valid" : true,
+        "rfid" : <rfid>,
+        "msg" : "Sucessfully Registered!"
+    }
+    - unsuccessful 
+    {
+        "valid" : false,
+        "msg" : <err msg>
+    }
+
+3) confirmWrite
+url : \confirmWrite
+method : PUT
+format : json
+describtion : Use to make sure that the given rfid is successfully written in rfid card
+current status : completed, working
+input format : 
+    {
+        "rfid":<rfid>
+    }
+output format : 
+    - rfid present 
+    {
+        "valid": true,
+        "msg": confirm
+    }
+    - rfid not present
+    {
+        "valid": false.
+        "msg": <err msg>
+    }
+
+4) deduct
+url : \deduct
+method : POST
+format : json
+describtion : Use to cut requested amount from user balance 
+curent status : completed, working
+input format : 
+    {
+        "rfid" : <rfid>,
+        "pin" : <pin>,
+        "amount" : <amount>
+    }
+output format : 3 type depending on stituation
+    - succesful transction
+    {
+        "valid" : true,
+        "rfid" : <rfid>,
+        "balance" : <balance>,
+        "msg" : "Sucessful transction!"
+    }
+    - amount requested is higher than the balance
+    {
+        "valid" :false,
+        "balance" : <current balance>,
+        "msg" : "Current balance is lower than the requested amount"    
+    }
+    - unsuccessful 
+    {
+        "valid" : false,
+        "msg" : <err msg>
+    }
+
+
+5) addAmount
+url : \addAmount
+method : PUT
+format : json
+describtion : Use to add requested amount to user balance 
+curent status : completed
+input format : 
+    {
+        "rfid" : <rfid>,
+        "pin" : <pin>,
+        "amount" : <amount>
+    }
+output format :
+    - succesful
+    {
+        valid : true,
+        msg : "Successfully added amount!",
+        rfid : <rfid>,
+        balance : <current balance>
+    }
+    - unsuccessful 
+    {
+        "valid" : false,
+        "msg" : <err msg>
+    }
+
+
+EMPLOYEE URL 
+
+6) empAdd
+url : \empAdd
+method : PUT
+format : json
+describtion : Use to add a new employee
+curent status : need to add a emp check(manager or above authority can add emp), working
+input format :
+    {
+        "empId" :  <empId>
+        "name": <emp_name>,
+        "mobile" : <mobile>,
+        "authority" : <authority>,
+        "password" :  <password>
+    }
+output format : 3 types
+    - on successful addition
+    {
+        "valid" : true,
+        "msg": "Employee added!",
+        "empId": <emp_id>,
+        "name": <name>
+    }
+    - duplicate empId
+    {
+        "valid" : false,
+        "msg" : "empId already exists!"
+    }
+    - on error
+    {
+        "valid" : false,
+        "msg" : <err_msg>
+    }
+
+7) empValidate
+url : \empValidate
+method : GET
+format : json
+describtion : Use to validate empId and password 
+curent status : completed, woking
+input format :
+    {
+        "empId" : <empId>,
+        "password" : <password>
+    }
+output format : 4 types depending on data posted
+    - valid rfid and pin
+    {
+        "valid" : true,
+        "msg" : <msg>,
+        "name" : <name>,
+        "isManager" : <isManager>
+    }
+    - invalid pin valid rfid
+    {  
+        "valid": false,
+        "err": "Password not matching!"
+    }
+    - invalid rfid
+    {
+        "valid": false,
+        "err": "empId not registered!"
+    }
