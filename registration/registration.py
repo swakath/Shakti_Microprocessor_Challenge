@@ -23,6 +23,11 @@ def clear():
 ####### DB Query functions #########
 url = "https://shakti-challenge.herokuapp.com"
 # url = "http://localhost:5001"
+def check_str(entry,length):
+	if isinstance(entry, str) and len(entry) <= length:
+		return True
+	print("Invalid Datatype or length")
+	return False
 
 def registerEmp(empId,name,password,mobile,authority):
 	req_json = {
@@ -58,23 +63,37 @@ def validateEmp(empId,password):
 		return False,False
 
 def validateUser(rfid,pin):
+	info = []
+	if not (isinstance(rfid,int) and check_str(pin,10)):
+		print("Data type error.\n")
+		return False,info
+		
 	req_json = {
 		"rfid" : rfid, # integer
 		"pin" : pin # string 10
 	}
 	response = requests.get(url+"/validate",json=req_json)
 	res = json.loads(response.text)
+	
 	if res["valid"]:
-		print("Server[successful] : ",res["msg"])
-		print("Account details :- \nrfid :",res["rfid"],"\nname :",res["name"],"\nbalance :",res["balance"])
+		#print("Server[successful] : ",res["msg"])
+		#print("Account details :- \nrfid :",res["rfid"],"\nname :",res["name"],"\nbalance :",res["balance"])
+		info = [res["rfid"],res["name"],res["balance"]]
+		return True,info
 	else :
 		print("Server[error] : ",res["msg"])
+		return False,info
 
 def registerUser(name,pin,address,mobile,balance):
+
+	if not (check_str(name,30) and check_str(pin, 10) and check_str(address,50) and check_str(mobile,10) and isinstance(balance,int)):
+		print("Data type error.\n")
+		return False,False
+
 	req_json = {
 		"pin" : pin, # string 10
 		"address" : address, # string 50
-		"mobile" : mobile, # integer
+		"mobile" : mobile, # string 10
 		"balance" : balance, # integer
 		"name" : name # integer 30
 	}
@@ -89,46 +108,61 @@ def registerUser(name,pin,address,mobile,balance):
 		return False,False
 
 def confirmWrite(rfid):
-    req_json = {
-        "rfid" : rfid # integer
-    }
-    response = requests.put(url+"/confirmWrite",json=req_json)
-    res = json.loads(response.text)
-    if res["valid"]:
+	if not isinstance(rfid, int):
+		print("Data type error.\n")
+		return False
+
+	req_json = {
+		"rfid" : rfid # integer
+	}
+	response = requests.put(url+"/confirmWrite",json=req_json)
+	res = json.loads(response.text)
+	if res["valid"]:
         #print("Server[successful] : ",res["msg"])
-        return True
-    else :
-        print("Server[error] : ",res["msg"])
-        return False
+		return True
+	else :
+		print("Server[error] : ",res["msg"])
+		return False
 
 def withdraw(rfid,pin,amount):
-    req_json = {
-        "rfid" : rfid, # integer
-        "pin" : pin, # string 10
-        "amount" : amount # integer
-    }
-    response = requests.post(url+"/deduct",json=req_json)
-    res = json.loads(response.text)
-    if res["valid"]:
-        print("Server[successful] : ",res["msg"])
-        print("Account details :- \nrfid :",res["rfid"],"\ncurrent balance :",res["balance"])
-    else :
-        print("Server[error] : ",res["msg"])
+	if not ( isinstance(rfid,int) and isinstance(amount,int) and check_str(pin,10)):
+		print("Data type error.\n")
+		return False,False
+
+	req_json = {
+		"rfid" : rfid, # integer
+		"pin" : pin, # string 10
+		"amount" : amount # integer
+	}
+	response = requests.post(url+"/deduct",json=req_json)
+	res = json.loads(response.text)
+	if res["valid"]:
+        #print("Server[successful] : ",res["msg"])
+        #print("Account details :- \nrfid :",res["rfid"],"\ncurrent balance :",res["balance"])
+		return True,res["balance"]    
+	else :
+		print("Server[error] : ",res["msg"])
+		return False,False
 
 def deposite(rfid,pin,amount):
-    req_json = {
-        "rfid" : rfid, # integer
-        "pin" : pin, # string 10
-        "amount" : amount # integer
-    }
-    response = requests.put(url+"/addAmount",json=req_json)
-    res = json.loads(response.text)
-    if res["valid"]:
-        print("Server[successful] : ",res["msg"])
-        print("Account details :- \nrfid :",res["rfid"],"\ncurrent balance :",res["balance"])
-    else :
-        print("Server[error] : ",res["msg"])
+	if not ( isinstance(rfid,int) and isinstance(amount,int) and check_str(pin,10)):
+		print("Data type error.\n")
+		return False,False
 
+	req_json = {
+		"rfid" : rfid, # integer
+		"pin" : pin, # string 10
+		"amount" : amount # integer
+	}
+	response = requests.put(url+"/addAmount",json=req_json)
+	res = json.loads(response.text)
+	if res["valid"]:
+        #print("Server[successful] : ",res["msg"])
+        #print("Account details :- \nrfid :",res["rfid"],"\ncurrent balance :",res["balance"])
+		return True, res["balance"]    
+	else :
+		print("Server[error] : ",res["msg"])
+		return False,False
 
 #verifyLogin(user,pwd) // to verify the user name and pwd and return the access type (User data / Employee data)
 #getRFID()
@@ -139,7 +173,6 @@ def generatePIN():
 	return pin
 
 ####### RFID Sensor Functions ##############
-
 def wrapData(RFID,Pin,Amount,Name):	
 	#IN - 4(2)
 	#RFID - 8(6)
@@ -150,7 +183,7 @@ def wrapData(RFID,Pin,Amount,Name):
 	if len(Name) > 22:
 		Name = Name[0:22]
 	text = "IN X" + str(RFID) + " X" + str(Pin) + " X" + str(Amount)+ " X"+ Name + " X"
-	print("This is the packet info: ",text);	
+	#print("This is the packet info: ",text);	
 	return text
 	
 def unwrapData(packet):
@@ -161,10 +194,10 @@ def unwrapData(packet):
 	if len(bridge)>=5:
 		info.append(bridge[0])
 		if info[0] == 'IN':	
-			info.append(int (bridge[1]))
-			info.append(bridge[2])
-			info.append(float(bridge[3]))
-			info.append(bridge[4])
+			info.append(int (bridge[1])) #RFID
+			info.append(bridge[2]) #PIN
+			info.append(int(bridge[3])) #Amount
+			info.append(bridge[4]) #Name
 			flag = True
 		else:
 			info = []
@@ -298,7 +331,47 @@ def addUser():
 		else:
 			print("Please enter valid option number")
 
+def depositeMoney():
+	clear()
+	isDeposit = False
+	
+	print("############## Deposite Money ##############")
+	value = int (input("Please enter deposite value (in Rs.): "))
+	isDeposite = verificationBOX("Proceed depositing " + str (value)+" [Y|N] ")
+	
+	print("\nPlace RFID Tag")
+	if isDeposite:
+		isDeposite,info = readCard()
+	if isDeposite:
+		RFID = info[1]
+		PIN = info[2]
+		Balance = info[3]
+		Name = info[4]
+		isDeposite,Balance = deposite(RFID,PIN,value)
+		if isDeposite:
+			print("Database updated")
+			isDeposite = writeCard(RFID,PIN,Balance,Name)
+			if isDeposite:
+				isDeposite = verifyWrite(RFID,PIN,Balance,Name)
+			if not isDeposite:
+				withdraw(RFID,PIN,value)
+	if isDeposite:
+		print("Deposite Successful.\n")
+	else:
+		print("Deposite Failure. \n")
 
+	# Taking input for the 
+	isValidOption = False	
+	while not isValidOption:
+		option = input("Please Select Your Option:\n1) Continue with Deposite Money\n2)Go to Main Page\n")
+		if option=='1':
+			depositeMoney()
+			isValidOption = True
+		if option =='2':
+			mainPage()
+			isValidOption = True
+		else:
+			print("Please enter valid option number")
 ############## Employee Functions #################
 def addEmployee():
 	clear()
@@ -380,7 +453,7 @@ def mainPage():
 			isCardEmpty()
 			print("LOL")
 		elif option=='3':
-			#deposite()
+			depositeMoney()
 			print("LOL")
 		elif option=='exit':
 			quit()
