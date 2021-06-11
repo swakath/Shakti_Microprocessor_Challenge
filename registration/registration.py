@@ -258,7 +258,8 @@ def isCardEmpty():
     print("The Card is already written")
     return False
   print("The card is empty")
-  return True				
+  return True	
+  			
 ####### Functions for user options #########
 def verificationBOX(txt):
 	isValid = False
