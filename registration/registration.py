@@ -30,6 +30,9 @@ def check_str(entry,length):
 	return False
 
 def registerEmp(empId,name,password,mobile,authority):
+	if not(check_str(empId,30) and check_str(name,30) and check_str(password,30) and check_str(mobile,10) and isinstance(authority,int)):
+		print("Datatype error.\n")
+		return False
 	req_json = {
 		"empId" : empId, # string 30
 		"name" : name, # string 30
@@ -40,14 +43,17 @@ def registerEmp(empId,name,password,mobile,authority):
 	response = requests.put(url+"/empAdd",json=req_json)
 	res = json.loads(response.text)
 	if res["valid"]:
-		print("Server[successful] : ",res["msg"])
-		print("Employee details :- \n empId :",res["empId"],"\nname :",res["name"])
+		#print("Server[successful] : ",res["msg"])
+		#print("Employee details :- \n empId :",res["empId"],"\nname :",res["name"])
 		return True
 	else :
 		print("Server[error] : ",res["msg"])
 		return False
 
 def validateEmp(empId,password):
+	if not(check_str(empId,30) and check_str(password,30)):
+		print("Datatype error.\n")
+		return False,False
 	req_json = {
 	"empId" : empId, # string 30
 	"password" : password # string 30
@@ -55,12 +61,29 @@ def validateEmp(empId,password):
 	response = requests.get(url+"/empValidate",json=req_json)
 	res = json.loads(response.text)
 	if res["valid"]:
-		print("Server[successful] : ",res["msg"])
-		print("Account details :- \nname :",res["name"],"\nisManager :",res["isManager"])
+		#print("Server[successful] : ",res["msg"])
+		#print("Account details :- \nname :",res["name"],"\nisManager :",res["isManager"])
 		return True,res["isManager"]
 	else :
 		print("Server[error] : ",res["msg"])
 		return False,False
+
+def getEmpDetails(empId):
+	if not check_str(empId,30):
+		print("Datatype Error")
+		return False,False	
+	req_json = {
+		"empId" : empId,
+	}
+	response = requests.get(url+"/empDetails",json=req_json)
+	res = json.loads(response.text)
+	if res["valid"]:
+        #print("Server[successful] : ",res["msg"])
+        #print(res["empId"],res["name"],res["mobile"],res["authority"])
+		return True,res
+	else :
+		#print("Server[error] : ",res["msg"])
+		return False,res
 
 def validateUser(rfid,pin):
 	info = []
@@ -282,8 +305,6 @@ def verifyWrite(RFID,PIN,Amount,Name):
 
 def isCardEmpty():
 	flag,info = readCard()
-	if not flag:
-		return False
 	if len(info)!=0 and info[0] == 'IN':
     	#print("The Card is already written")
 		return False
@@ -313,7 +334,7 @@ def addUser():
 	custName = input("Name: ") #Customer Name
 	custMobile = input("Mobile Number:(+91)") #Customer Mobile Number	
 	custAdd = input("Address: ")	#Customer Address
-	custRFID = 123456	
+	custRFID = 0
 	custPIN = generatePIN() #Generating Customer Pin
 	custBalance = 0 #Initial Card Balance is set to zero
 	
@@ -434,6 +455,7 @@ def getUserInfo():
 			isValidOption = True
 		else:
 			print("Please enter valid option number")
+
 ############## Employee Functions #################
 def addEmployee():
 	clear()
@@ -442,30 +464,32 @@ def addEmployee():
 	
 	# Getting employee information
 	print("Please enter the following Employee details: ")
-	empName = input("Name: ") #Customer Name
-	empMobile = input("Mobile Number:(+91)") #Customer Mobile Number	
-	empAdd = input("Address: ")	#Customer Address
-	
+	empName = input("Name: ") #Employee Name
+	empMobile = input("Mobile Number:(+91)") #Employee Mobile Number	
+	empAdd = input("Address: ")	#Employee Address
+	empEmail = input("Email ID (Will be used for login): ")
 	selectedOption = verificationBOX("Is the employee an admin [Y|N] ")
 	if selectedOption:
-		opt = 0
+		auth = 0
 	else:
-		opt = 2
-		
-	empID = 123456	
-	empPass = generatePIN() #Generating Customer Pin
-	
-	
-	# Verification of the information
-	isVerified = False # Verification in True if input is y|Y
-	isVerified = verificationBOX("Information is verified. Proceed to issue RFID tag. [Y|N] ")
-
-	if isVerified:
-		#Add employee info in data base
-		#Print emp id and pass
-		print("Add is success.\n")
+		auth = 2
+	notPass = True
+	while notPass:
+		empPass = getpass.getpass(prompt='Enter Password: ')
+		reEnter = input("Re-Enter Password: ")
+		if empPass == reEnter:
+			notPass = False
+		else:
+			print("Password not Matching.Try again.\n")
+	selectedOption = False	
+	selectedOption = verificationBOX("All details verified. Add employee details. [Y|N] ")
+	if selectedOption:
+		selectedOption = registerEmp(empEmail,empName,empPass,empMobile,auth)
+	if selectedOption:
+		print("Employee added successfully.\n")
 	else:
-		print("Verification Fail. New Employee detaild not created.\n")
+		print("Employee add fail. Please try again.\n")
+	
 	# Taking input for the next instruction.
 	isValidOption = False	
 	while not isValidOption:
@@ -479,17 +503,40 @@ def addEmployee():
 		else:
 			print("Please enter valid option number")
 
+def getEmployeeInfo():
+	clear()	
+	print("######### Get Employee Info ##########")
+	empID = input("Enter Employee Email ID: ")
+	isValid,res = getEmpDetails(empID)
+	if isValid:
+		print("\nEmployee Information")
+		print("Email ID: ",res["empId"],"\nName:",res["name"],"\nMobile: ",res["mobile"],"\nAuthority: ",res["authority"],"\n")
+	else:
+		print(res['msg'],"\n")
+	# Taking input for the next instruction.
+	isValidOption = False	
+	while not isValidOption:
+		option = input("Please Select Your Option:\n1) Continue with Get Employee Info\n2) Go to Admin Page\n")
+		if option=='1':
+			getEmployeeInfo()
+			isValidOption = True
+		if option =='2':
+			adminPage()
+			isValidOption = True
+		else:
+			print("Please enter valid option number.\n")	
 ############# Login Functions ####################	
 def loginWindow():
-	while True:   
+	while True:
+		clear()   
 		print("######### LOGIN PAGE #########")
 		empID = input("Employee ID:");
 		pwd = getpass.getpass(prompt='Pass ')
 		isValidCred = False	
-		isValidCred = True
-		isAdmin = False
-		#isValidCred,isAdmin = validateEmp(empID,pwd) 
-		print(isValidCred,isAdmin)      	
+		#isValidCred = True
+		#isAdmin = True
+		isValidCred,isAdmin = validateEmp(empID,pwd) 
+		#print(isValidCred,isAdmin)      	
 		if isValidCred:
 			print (u'\u2713',"Authentication Successful")
 			sleep(2)
@@ -527,16 +574,13 @@ def adminPage():
 	clear()
 	print("######### ADMIN PAGE #########")
 	while True:
-		option = input("\nSelect your option:\n1) Create Employee ID \n2) Get Employee Info\n3)Remove Employee\nEnter\'exit\' to exit\n")
+		option = input("\nSelect your option:\n1) Create Employee ID \n2) Get Employee Info\n3) Go to customer option\nEnter\'exit\' to exit\n")
 		if option=='1':
 			addEmployee()
 		elif option=='2':
-			print("Enter Employee ID : ")
-			ID = input()
-			#getEmployeeInfo(ID)
-			print("Details Printed")
+			getEmployeeInfo()
 		elif option=='3':
-			removeEmployee()
+			mainPage()
 		elif option=='exit':
 			quit()
 		else:
