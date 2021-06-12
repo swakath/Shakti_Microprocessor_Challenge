@@ -203,14 +203,24 @@ def unwrapData(packet):
 			info = []
 	return flag,info	
 	
-def writeCard(RFID,Pin,Amount,Name):
+def writeCard(RFID,Pin,Amount,Name,Empty):
 	flag = False #flag is true is write is successful
 	text = wrapData(RFID,Pin,Amount,Name)
 	writer = SimpleMFRC522()
-
 	try:
-        	print("Now place your tag to write.\n")
-        	writer.write(text)
+		print("Now place your tag to write.\n")
+		if Empty:
+			isRead,isEmpty = isCardEmpty()
+			if isRead and isEmpty:
+				writer.write(text)
+			else:
+				flag = False
+		else:
+			isRead,isEmpty = isCardEmpty()
+			if isRead and not isEmpty:
+				writer.write(text)
+			else:
+				flag = False
 	except:
 		flag = False
 		#print("Failed to write data in the tag")
@@ -252,13 +262,14 @@ def verifyWrite(RFID,PIN,Amount,Name):
 	return flag	
 
 def isCardEmpty():
-  flag,info = readCard()
- 
-  if len(info)!=0 and info[0] == 'IN':
-    print("The Card is already written")
-    return False
-  print("The card is empty")
-  return True	
+	flag,info = readCard()
+ 	if not flag:
+		return False,False
+	if len(info)!=0 and info[0] == 'IN':
+    	#print("The Card is already written")
+		return True,False
+  		#print("The card is empty")
+	return True,True	
   			
 ####### Functions for user options #########
 def verificationBOX(txt):
@@ -299,8 +310,9 @@ def addUser():
 	# Data of the user is written in the RFID Tag
 		isDatabaseWrite,custRFID = registerUser(custName,custPIN,custAdd,custMobile,custBalance)
 		#custRFID = getRFID(custPIN,custBalance,custName) # Getting RFID from database
-		if isDatabaseWrite:		
-			isCardWrite = writeCard(custRFID,custPIN,custBalance,custName)
+		if isDatabaseWrite:
+					
+			isCardWrite = writeCard(custRFID,custPIN,custBalance,custName,True)
 		else:
 			isCardWrite = False
 	# If the write is Successful the written data is read again to verify
@@ -337,34 +349,38 @@ def depositeMoney():
 	isDeposit = False
 	
 	print("############## Deposite Money ##############")
-	value = int (input("Please enter deposite value (in Rs.): "))
-	isDeposite = verificationBOX("Proceed depositing " + str (value)+" [Y|N] ")
-	
-	print("\nPlace RFID Tag")
-	if isDeposite:
-		isDeposite,info = readCard()
+	print("Place the RFID Tag.\n")
+
+	isDeposite,info = readCard()
+		
 	if isDeposite:
 		RFID = info[1]
 		PIN = info[2]
 		Balance = info[3]
 		Name = info[4]
+		print("Card Info\nTag ID: ",RFID,"\nCustomer Name: ", Name,"\nCurrent Balance: ",Balance,"\n")
+		value = int (input("Please enter deposite value (in Rs.): "))
+		isDeposite = verificationBOX("Proceed depositing Rs." + str (value)+" [Y|N] ")
+		
+	if isDeposite:
 		isDeposite,Balance = deposite(RFID,PIN,value)
 		if isDeposite:
 			print("Database updated")
-			isDeposite = writeCard(RFID,PIN,Balance,Name)
+			isDeposite = writeCard(RFID,PIN,Balance,Name,False)
 			if isDeposite:
 				isDeposite = verifyWrite(RFID,PIN,Balance,Name)
 			if not isDeposite:
 				withdraw(RFID,PIN,value)
 	if isDeposite:
 		print("Deposite Successful.\n")
+		print("Updated Info\nTag Number: ",RFID,"\nCurrent Balance: ", Balance,"\n")
 	else:
 		print("Deposite Failure. \n")
 
 	# Taking input for the 
 	isValidOption = False	
 	while not isValidOption:
-		option = input("Please Select Your Option:\n1) Continue with Deposite Money\n2)Go to Main Page\n")
+		option = input("Please Select Your Option:\n1) Continue with Deposite Money\n2) Go to Main Page\n")
 		if option=='1':
 			depositeMoney()
 			isValidOption = True
@@ -373,13 +389,14 @@ def depositeMoney():
 			isValidOption = True
 		else:
 			print("Please enter valid option number")
+
 ############## Employee Functions #################
 def addEmployee():
 	clear()
 	print("######### ADD Employee PAGE #########")
-	#name,address,mobile number
+	# name,address,mobile number
 	
-	#Getting employee information
+	# Getting employee information
 	print("Please enter the following Employee details: ")
 	empName = input("Name: ") #Customer Name
 	empMobile = input("Mobile Number:(+91)") #Customer Mobile Number	
